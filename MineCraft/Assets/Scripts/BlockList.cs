@@ -19,6 +19,9 @@ namespace ShiFang.Scripts
 
             Block grass = new Block(2, "Grass", 3, 31, 0, 31, 2, 31);
             blocks.Add(grass.id, grass);
+
+            Block stone = new Block(3, "Stone", 1, 31);
+            blocks.Add(stone.id, stone);
         }
 
         public static Block GetBlock(byte id)

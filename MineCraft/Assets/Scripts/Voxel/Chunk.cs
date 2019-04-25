@@ -12,7 +12,7 @@ namespace ShiFang.Scripts.Voxel
     public class Chunk : MonoBehaviour
     {
         public static int width = 16;
-        public static int height = 16;
+        public static int height = 64;
 
         public byte[,,] blocks;
         public Vector3i position;
@@ -38,30 +38,44 @@ namespace ShiFang.Scripts.Voxel
         /// <summary>
         /// 让UV稍微缩小一点，避免出现它旁边的贴图
         /// </summary>
-        public static float shrinkSize = 0.001f;
+        public static float shrinkSize = 0.005f;
 
         /// <summary>
         /// 当前chunk是否正在生成
         /// </summary>
         private bool isWorking = false;
 
+        private bool isFinished = false;
+
         private void Start()
         {
             position = new Vector3i(this.transform.position);
-            if (Map.instance.chunks.ContainsKey(position))
+            if (Map.instance.ChunkExists(position))
             {
+                Debug.LogError("此方块已存在" + position);
                 Destroy(this);
             }
             else
             {
                 Map.instance.chunks.Add(position, gameObject);
                 this.name = string.Format("({0},{1},{2})", position.x, position.y, position.z);
+                //StartFunction();
+            }
+        }
+
+        private void Update()
+        {
+            if(!isWorking && !isFinished)
+            {
+                isFinished = true;
                 StartFunction();
             }
         }
 
+
         private void StartFunction()
         {
+            isWorking = true;
             mesh = new Mesh();
             mesh.name = "Chunk";
             StartCoroutine(CreateMap());
@@ -69,11 +83,6 @@ namespace ShiFang.Scripts.Voxel
 
         IEnumerator CreateMap()
         {
-            while (isWorking)
-            {
-                yield return null;
-            }
-            isWorking = true;
             blocks = new byte[width, height, width];
             for (int x = 0; x < width; x++)
             {
@@ -81,24 +90,19 @@ namespace ShiFang.Scripts.Voxel
                 {
                     for (int z = 0; z < width; z++)
                     {
-                        if(y == height - 1)
+                        byte blockid = Terrain.GetTerrainBlock(new Vector3i(x, y, z) + position);
+                        if (blockid == 1 && Terrain.GetTerrainBlock(new Vector3i(x, y + 1, z) + position) == 0)
                         {
-                            if(UnityEngine.Random.Range(1,5) == 1)
-                            {
-                                blocks[x, y, z] = 2;
-                            }
-                            else
-                            {
-                                blocks[x, y, z] = 1;
-                            }
+                            blocks[x, y, z] = 3;
                         }
                         else
                         {
-                            blocks[x, y, z] = 1;
-                        } 
+                            blocks[x, y, z] = Terrain.GetTerrainBlock(new Vector3i(x, y, z) + position);
+                        }
                     }
                 }
             }
+            yield return null;
             StartCoroutine(CreateMesh());
         }
 
@@ -114,7 +118,7 @@ namespace ShiFang.Scripts.Voxel
                     {
                         Block block = BlockList.GetBlock(blocks[x, y, z]);
                         if (block == null) continue;
-
+                        // 判断是否有相邻方块，及相邻方块是否透明，是则渲染该面
                         if (IsBlockTransparent(x + 1, y, z))
                         {
                             AddFrontFace(x, y, z, block);
@@ -157,13 +161,20 @@ namespace ShiFang.Scripts.Voxel
             isWorking = false;
         }
 
-        public static bool IsBlockTransparent(int x,int y,int z)
+        /// <summary>
+        /// 此方块是否透明
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="z"></param>
+        /// <returns></returns>
+        public bool IsBlockTransparent(int x,int y,int z)
         {
             if (x >= width || y >= height || z >= width || x < 0 || y < 0 || z < 0)
             {
                 return true;
             }
-            return false;
+            return blocks[x, y, z] == 0;
         }
 
         //前面
@@ -214,10 +225,6 @@ namespace ShiFang.Scripts.Voxel
             vertices.Add(new Vector3(-1 + x, 1 + y, 1 + z));
 
             //添加UV坐标点，跟上面4个点循环的顺序一致
-            if(block == null)
-            {
-                Debug.LogError("");
-            }
             uv.Add(new Vector2(block.textureBackX * textureOffset, block.textureBackY * textureOffset) + new Vector2(shrinkSize, shrinkSize));
             uv.Add(new Vector2(block.textureBackX * textureOffset + textureOffset, block.textureBackY * textureOffset) + new Vector2(-shrinkSize, shrinkSize));
             uv.Add(new Vector2(block.textureBackX * textureOffset + textureOffset, block.textureBackY * textureOffset + textureOffset) + new Vector2(-shrinkSize, -shrinkSize));

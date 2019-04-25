@@ -9,16 +9,24 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        for (float x = transform.position.x - Chunk.width * 3; x < transform.position.x + Chunk.width * 3; x += Chunk.width)
+        for (float x = transform.position.x - Chunk.width * viewRange / 10; x < transform.position.x + Chunk.width * viewRange / 10; x += Chunk.width)
         {
-            for (float z = transform.position.z - Chunk.width * 3; z < transform.position.z + Chunk.width * 3; z += Chunk.width)
+            for (float y = transform.position.y - Chunk.height * viewRange / 10; y < transform.position.y + Chunk.height * viewRange / 10; y += Chunk.height)
             {
-                int xx = Chunk.width * Mathf.FloorToInt(x / Chunk.width);
-                int zz = Chunk.width * Mathf.FloorToInt(z / Chunk.width);
-                if (!Map.instance.ChunkExists(xx, 0, zz))
+                //Y轴上是允许最大16个Chunk，方块高度最大是256
+                if (y <= Chunk.height && y > 0)
                 {
-                    Map.instance.CreateChunk(new Vector3i(xx, 0, zz));
+                    for (float z = transform.position.z - Chunk.width * viewRange / 10; z < transform.position.z + Chunk.width * viewRange / 10; z += Chunk.width)
+                    {
+                        int xx = Chunk.width * Mathf.FloorToInt(x / Chunk.width);
+                        int zz = Chunk.width * Mathf.FloorToInt(z / Chunk.width);
+                        if (!Map.instance.ChunkExists(xx, 0, zz))
+                        {
+                            Map.instance.CreateChunk(new Vector3i(xx, 0, zz));
+                        }
+                    }
                 }
+
             }
         }
     }
